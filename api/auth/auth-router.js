@@ -1,6 +1,9 @@
 const router = require('express').Router();
 const users = require('../usersModel')
 const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+const { JWT_SECRET } = require('../../secret')
+
 router.post('/register', (req, res,next) => {
   //res.end('implement register, please!');
   /*
@@ -86,12 +89,16 @@ users.getByFilter(username)
   }
   if(bcrypt.compareSync(password, user.password)){
     req.session.user = user 
-   return res.json({message:`welcome, ${user.username}`})
+    const token = generateToken(user)
+   return res.json({
+    message:`welcome, ${req.session.user.username}`,
+    token: token
+  })
   }
   else 
   return res.status(401).json({message:"invalid credentials"})
 })
-.then(next)
+.catch(next)
 
 
 });
@@ -102,5 +109,18 @@ router.use((err,req,res,next) => { // eslint-disable-line
       stack: err.stack,
     });
 })
+
+function generateToken(user){
+  const payload = {
+    subject: user.id,
+    username: user.username,
+  }
+
+  const options = {
+    expiresIn: '1d',
+  }
+
+  return jwt.sign(payload, JWT_SECRET, options);
+}
 
 module.exports = router;
